@@ -6,7 +6,7 @@ COPY index.js /app
 COPY package.json /app
 
 RUN mkdir /config_default
-COPY start.sh /config_default
+COPY docker/start.sh /config_default
 COPY config.json /config_default
 
 RUN chmod +x /config_default/start.sh
