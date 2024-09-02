@@ -1,6 +1,8 @@
 # traccar-node-client
 A node client for pushing GPS updates from GPSD to a Traccar server
 
+This will cache updates when they fail to send, meaning full history is retained when tracking resumes.
+
 # example config.json
 
     {
