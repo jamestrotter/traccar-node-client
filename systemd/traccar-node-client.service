@@ -10,7 +10,7 @@ StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=traccer-node-client
 Environment=PATH=/usr/bin:/usr/local/bin
-ExecStart=/usr/local/bin/node /home/mhomepi/traccar-node-client/index.js
+ExecStart=/home/mhomepi/.nvm/versions/node/v20.17.0/bin/node /home/mhomepi/traccar-node-client/index.js
 
 [Install]
 WantedBy=multi-user.target
