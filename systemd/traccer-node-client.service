@@ -1,0 +1,12 @@
+[Unit]
+Description=Traccar Node Client
+ExecStart=/usr/local/bin/node /home/mhomepi/traccar-node-client/index.js
+
+[Service]
+RestartSec=10
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=traccer-node-client
+Environment=PATH=/usr/bin:/usr/local/bin
+WantedBy=multi-user.target
