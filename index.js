@@ -40,6 +40,8 @@ client.on('TPV', data => {
     }
     else{
         console.log("Waiting for fix...");
+        cachedTPV = null;
+        previousTPV= null;
     }
 })
 
@@ -56,23 +58,26 @@ let toSend = [];
 
 checkInterval();
 function checkInterval(){
+
     if(cachedTPV != null && previousTPV != null){
         const a = { lat: cachedTPV.lat, lon: cachedTPV.lon }
         const b = { lat: previousTPV.lat, lon: previousTPV.lon }
         let distance = haversine(a, b);
-        
+
         if(distance > config.static_distance_threshold){
             hasExceededStaticDistance = true;
         }
-        
+    }
+
+    if(cachedTPV != null){
         var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
         if(previousSendTime < Date.now() - waitTime){
             saveLocation();
             hasExceededStaticDistance = false;
             previousSendTime = Date.now();
         }
-        
     }
+
     sendMessages();
     setTimeout(checkInterval, 1000);
 }
