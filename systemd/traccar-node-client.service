@@ -9,4 +9,6 @@ StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=traccer-node-client
 Environment=PATH=/usr/bin:/usr/local/bin
+
+[Install]
 WantedBy=multi-user.target
