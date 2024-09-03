@@ -103,7 +103,7 @@ function saveLocation(){
     let epy = cachedTPV.epy;
     let accuracy = (epx + epy)/2
 
-    let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${accuracy}`;
+    let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${Math.round(accuracy * 100) / 100}`;
     toSend.push(url);
 }
 
