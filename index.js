@@ -99,8 +99,11 @@ function saveLocation(){
     let speed = cachedTPV.speed;    
     let hdop = cachedSKY.hdop;
     let time = cachedTPV.time;
+    let epx = cachedTPV.epx;
+    let epy = cachedTPV.epy;
+    let accuracy = (epx + epy)/2
 
-    let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}`;
+    let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${accuracy}`;
     toSend.push(url);
 }
 
