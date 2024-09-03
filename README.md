@@ -5,6 +5,8 @@ Notable features:
 1. When network is down it will cache messages, allowing for full history when network resumes
 2. different send rates for if the device is static or moving, allowing lower data rates for static devices.
 
+Run it with `node index.js` after cloning the repo. Relies on `GPSD` being installed and running.
+
 # example config.json
 
     {
