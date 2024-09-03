@@ -31,18 +31,22 @@ client.on('error', err => {
 })
 let previousTPV = null;
 let cachedTPV = null;
+let lastMessageTime = new Date(0);
 
 client.on('TPV', data => {
-    //first check mode, 1 = no fix, 2 = 2d fix, 3 = 3d fix
-    if(data.mode > 1 && data.device == config.gps_device){
-        previousTPV = cachedTPV;
-        cachedTPV = data;
+    //first check mode, 1 = no fix, 2 = 2d fix, 3 = 3d fix]
+    if(data.device == config.gps_device){
+        lastMessageTime = new Date(Date.now());
+        if(data.mode > 1){
+            previousTPV = cachedTPV;
+            cachedTPV = data;
+        }
+        else{
+            cachedTPV = null;
+            previousTPV= null;
+        }
     }
-    else{
-        console.log("Waiting for fix...");
-        cachedTPV = null;
-        previousTPV= null;
-    }
+
 })
 
 let cachedSKY = null;
@@ -55,6 +59,9 @@ client.connect()
 let previousSendTime = 0;
 let hasExceededStaticDistance = false;
 let toSend = [];
+
+const delayTimer = 10000;
+const loopTimer = 1000;
 
 checkInterval();
 function checkInterval(){
@@ -69,17 +76,20 @@ function checkInterval(){
         }
     }
 
-    if(cachedTPV != null){
-        var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
-        if(previousSendTime < Date.now() - waitTime){
+    var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
+    if(previousSendTime < Date.now() - waitTime){
+        if(cachedTPV != null){
             saveLocation();
             hasExceededStaticDistance = false;
             previousSendTime = Date.now();
         }
+        else{
+            console.log(`Send time has elapsed but waiting for fix.. ${cachedSKY == null ? 'no data yet' : `satellite count = ${cachedSKY.satellites.length}` }, last GPSD update ${lastMessageTime}`);
+        }
     }
 
     sendMessages();
-    setTimeout(checkInterval, 1000);
+    setTimeout(checkInterval, cachedTPV != null ? loopTimer : delayTimer);
 }
 
 function saveLocation(){
@@ -98,9 +108,10 @@ async function sendMessages(){
     while(toSend.length > 0){
         var url = toSend[0];
         try {
+            console.log(`sending '${url}', last GPSD update ${lastMessageTime}`);
             await tiny.get({url});
-            console.log("Location updated successfully")
-            toSend.shift()
+            console.log("success");
+            toSend.shift();
         }
         catch(e){
             console.error(`FAILED TO UPDATE LOCATION, #${toSend.length} UPDATES IN QUEUE`, e);
