@@ -29,22 +29,29 @@ client.on('connected', () => {
 client.on('error', err => {
     console.log(`Gpsd error: ${err.message}`)
 })
-let previousTPV = null;
+let historicTPV = []
 let cachedTPV = null;
 let lastMessageTime = new Date(0);
 
 client.on('TPV', data => {
-    //first check mode, 1 = no fix, 2 = 2d fix, 3 = 3d fix]
+    //first check mode, 1 = no fix, 2 = 2d fix, 3 = 3d fix
     if(data.device == config.gps_device){
-        lastMessageTime = new Date(Date.now());
+        let now = new Date(Date.now());
+        let cutoffTime = new Date(Date.now() - config.static_distance_measure_time);
+
         if(data.mode > 1){
-            previousTPV = cachedTPV;
             cachedTPV = data;
+            historicTPV.push(data);
+            while(historicTPV.length > 0 && new Date(historicTPV[0].time) < cutoffTime)
+            {
+                historicTPV.shift();
+            }
         }
         else{
             cachedTPV = null;
             previousTPV= null;
         }
+        lastMessageTime = now;
     }
 
 })
@@ -66,12 +73,21 @@ const loopTimer = 1000;
 checkInterval();
 function checkInterval(){
 
-    if(cachedTPV != null && previousTPV != null){
-        const a = { lat: cachedTPV.lat, lon: cachedTPV.lon }
-        const b = { lat: previousTPV.lat, lon: previousTPV.lon }
-        let distance = haversine(a, b);
+    if(historicTPV.length > 1){
+        let totalDistance = 0;
 
-        if(distance > config.static_distance_threshold){
+        let list = [].concat(historicTPV);
+        let previous = list[0];
+        list.shift();
+        list.forEach(element => {
+            const a = { lat: element.lat, lon: element.lon }
+            const b = { lat: previous.lat, lon: previous.lon }
+            totalDistance += haversine(a, b);
+            
+            previous = element;
+        });
+
+        if(totalDistance > config.static_distance_threshold){
             hasExceededStaticDistance = true;
         }
     }
