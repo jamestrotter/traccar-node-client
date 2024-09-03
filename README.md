@@ -14,6 +14,7 @@ Notable features:
         "send_interval": 20000,
         "static_send_interval": 60000,
         "static_distance_threshold": 1,
+        "static_distance_measure_time": 1000,
         "server_url": "http://localhost:5055",
         "device_id": 7812
     }
