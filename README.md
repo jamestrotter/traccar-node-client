@@ -23,5 +23,7 @@ Config Options:
 - `"send_interval"` - interval between sending when not static (i.e in motion)
 - `"static_send_interval"` - interval between sending when static (i.e not in motion)
 - `"static_distance_threshold"` - distance in meters between GPS updates reported from GPSD to be classed as not "static"
+- `"static_distance_measure_time"` - the number of milliseconds worth of GPSD updates to use to calculate distance moved. the default values of 1m & 1000ms equates to ~10mph.
 - `"server_url"` - traccar server url (inc. port) for OsmAnd updates
 - `"device_id"` - Device ID to send to traccar
+
