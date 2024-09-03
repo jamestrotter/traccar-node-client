@@ -1,7 +1,9 @@
 # traccar-node-client
 A node client for pushing GPS updates from GPSD to a Traccar server
 
-This will cache updates when they fail to send, meaning full history is retained when tracking resumes.
+Notable features:
+1. When network is down it will cache messages, allowing for full history when network resumes
+2. different send rates for if the device is static or moving, allowing lower data rates for static devices.
 
 # example config.json
 
