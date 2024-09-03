@@ -76,16 +76,12 @@ function checkInterval(){
     if(historicTPV.length > 1){
         let totalDistance = 0;
 
-        let list = [].concat(historicTPV);
-        let previous = list[0];
-        list.shift();
-        list.forEach(element => {
-            const a = { lat: element.lat, lon: element.lon }
-            const b = { lat: previous.lat, lon: previous.lon }
-            totalDistance += haversine(a, b);
-            
-            previous = element;
-        });
+        let first = historicTPV[0];
+        let last = historicTPV[historicTPV.length-1];
+
+        const a = { lat: first.lat, lon: first.lon }
+        const b = { lat: last.lat, lon: last.lon }
+        totalDistance = haversine(a, b);
 
         if(totalDistance > config.static_distance_threshold){
             hasExceededStaticDistance = true;
