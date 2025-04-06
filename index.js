@@ -90,7 +90,7 @@ function checkInterval(){
 
     var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
     if(previousSendTime < Date.now() - waitTime){
-        if(cachedTPV != null){
+        if(cachedTPV != null && (cachedTPV.lat !== 0 &&  cachedTPV.lon !== 0)){
             saveLocation();
             hasExceededStaticDistance = false;
             previousSendTime = Date.now();
