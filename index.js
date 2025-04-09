@@ -29,6 +29,7 @@ client.on('connected', () => {
 client.on('error', err => {
     console.log(`Gpsd error: ${err.message}`)
 })
+
 let historicTPV = []
 let cachedTPV = null;
 let lastMessageTime = new Date(0);
@@ -71,8 +72,9 @@ const delayTimer = 10000;
 const loopTimer = 1000;
 
 checkInterval();
-function checkInterval(){
-
+async function checkInterval(){
+    console.log("call checkInterval()");
+    console.log(`historicTPV.length = ${historicTPV.length}`);
     if(historicTPV.length > 1){
         let totalDistance = 0;
 
@@ -88,8 +90,14 @@ function checkInterval(){
         }
     }
 
+    console.log(`hasExceededStaticDistance = ${hasExceededStaticDistance}`);
     var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
+    console.log(`waitTime = ${waitTime}`);
+
+    console.log(`previousSendTime = ${previousSendTime}`);
+    console.log(`Date.now() - waitTime = ${Date.now() - waitTime}`);
     if(previousSendTime < Date.now() - waitTime){
+        console.log(`Send time has elapsed!`);
         if(cachedTPV != null && (cachedTPV.lat !== 0 &&  cachedTPV.lon !== 0)){
             saveLocation();
             hasExceededStaticDistance = false;
@@ -100,7 +108,7 @@ function checkInterval(){
         }
     }
 
-    sendMessages();
+    await sendMessages();
     setTimeout(checkInterval, cachedTPV != null ? loopTimer : delayTimer);
 }
 
