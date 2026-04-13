@@ -12,8 +12,7 @@ pidfile="/run/${RC_SVCNAME}.pid"
 respawn_delay=5
 respawn_max=10
 
-output_log="/var/log/traccar-node-client.log"
-error_log="/var/log/traccar-node-client.log"
+output_logger="logger -t traccar-node-client"
 
 depend() {
     need net gpsd
