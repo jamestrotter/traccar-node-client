@@ -1,5 +1,6 @@
 const Gpsd = require('node-gpsd-client');
 const http = require('http');
+const net = require('net');
 const haversine = require("haversine-distance");
 const { EOL } = require("os");
 
@@ -18,6 +19,10 @@ try{
 catch (e){
     throw new Error("FAILED TO LOAD config.json FILE" +  EOL + e);
 }
+
+const PROTOCOL_HTTP = 'http';
+const PROTOCOL_H02  = 'h02';
+const protocol = (config.protocol || PROTOCOL_HTTP).toLowerCase();
 
 const client = new Gpsd({
   port: config.gpsd_port,
@@ -72,12 +77,75 @@ client.on('SKY', data => {
 
 client.connect()
 
+// --- H02 TCP connection ---
+let h02Socket = null;
+let h02Connected = false;
+
+function h02Connect() {
+    const url = new URL(config.server_url);
+    const host = url.hostname;
+    const port = parseInt(url.port) || 5013;
+
+    log.info(`H02: connecting to ${host}:${port}`);
+    h02Socket = new net.Socket();
+
+    h02Socket.connect(port, host, () => {
+        log.info('H02: connected');
+        h02Connected = true;
+    });
+
+    h02Socket.on('data', (data) => {
+        log.info(`H02: server response: ${data.toString().trim()}`);
+    });
+
+    h02Socket.on('error', (err) => {
+        log.error(`H02: socket error: ${err.message}`);
+        h02Connected = false;
+    });
+
+    h02Socket.on('close', () => {
+        log.info('H02: connection closed, reconnecting in 10s');
+        h02Connected = false;
+        setTimeout(h02Connect, 10000);
+    });
+}
+
+// Convert decimal degrees to DDMM.MMMM format
+function toNMEA(degrees, isLat) {
+    const d = Math.abs(degrees);
+    const deg = Math.floor(d);
+    const min = (d - deg) * 60;
+    const pad = isLat ? 2 : 3;
+    return `${String(deg).padStart(pad, '0')}${min.toFixed(4).padStart(7, '0')}`;
+}
+
+function buildH02Packet(tpv, sky) {
+    const now = new Date(tpv.time);
+    const time = now.toISOString().replace(/[-:T]/g, '').slice(8, 14); // HHMMSS
+    const date = now.toISOString().slice(8,10) + now.toISOString().slice(5,7) + now.toISOString().slice(2,4); // DDMMYY
+
+    const lat = toNMEA(tpv.lat, true);
+    const latDir = tpv.lat >= 0 ? 'N' : 'S';
+    const lon = toNMEA(tpv.lon, false);
+    const lonDir = tpv.lon >= 0 ? 'E' : 'W';
+    const speed = (tpv.speed * 1.94384).toFixed(2); // m/s to knots
+    const course = (tpv.track || 0).toFixed(0);
+
+    return `*HQ,${config.device_id},V1,${time},A,${lat},${latDir},${lon},${lonDir},${speed},${course},${date},FFFFFBFF#\r\n`;
+}
+
+// --- send ---
+
 let previousSendTime = 0;
 let hasExceededStaticDistance = false;
 let toSend = [];
 
 const delayTimer = 10000;
 const loopTimer = 1000;
+
+if (protocol === PROTOCOL_H02) {
+    h02Connect();
+}
 
 checkInterval();
 function checkInterval(){
@@ -122,36 +190,53 @@ function checkInterval(){
 }
 
 function saveLocation(){
-    
-    let lat = cachedTPV.lat;
-    let lon = cachedTPV.lon;
-    let speed = cachedTPV.speed;    
-    let hdop = cachedSKY.hdop;
-    let time = cachedTPV.time;
-    let epx = cachedTPV.epx;
-    let epy = cachedTPV.epy;
-    let accuracy = (epx + epy)/2
-
-    let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${Math.round(accuracy * 100) / 100}`;
-    toSend.push(url);
+    if (protocol === PROTOCOL_H02) {
+        toSend.push({ type: PROTOCOL_H02, packet: buildH02Packet(cachedTPV, cachedSKY) });
+    } else {
+        let lat = cachedTPV.lat;
+        let lon = cachedTPV.lon;
+        let speed = cachedTPV.speed;
+        let hdop = cachedSKY.hdop;
+        let time = cachedTPV.time;
+        let epx = cachedTPV.epx;
+        let epy = cachedTPV.epy;
+        let accuracy = (epx + epy)/2;
+        let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${Math.round(accuracy * 100) / 100}`;
+        toSend.push({ type: PROTOCOL_HTTP, url });
+    }
 }
 
 async function sendMessages(){
     while(toSend.length > 0){
-        var url = toSend[0];
+        const msg = toSend[0];
         try {
-            log.info(`sending '${url}', last GPSD update ${lastMessageTime}`);
-            await new Promise((resolve, reject) => {
-                http.get(url, (res) => {
-                    res.resume();
-                    resolve();
-                }).on('error', reject);
-            });
+            if (msg.type === PROTOCOL_H02) {
+                if (!h02Connected) {
+                    log.info(`H02: not connected, ${toSend.length} update(s) queued`);
+                    break;
+                }
+                log.info(`H02: sending '${msg.packet.trim()}'`);
+                await new Promise((resolve, reject) => {
+                    h02Socket.write(msg.packet, (err) => err ? reject(err) : resolve());
+                });
+            } else {
+                log.info(`HTTP: sending '${msg.url}', last GPSD update ${lastMessageTime}`);
+                await new Promise((resolve, reject) => {
+                    http.get(msg.url, (res) => {
+                        res.resume();
+                        resolve();
+                    }).on('error', reject);
+                });
+            }
             log.info("success");
             toSend.shift();
         }
         catch(e){
             log.error(`FAILED TO UPDATE LOCATION, #${toSend.length} UPDATES IN QUEUE`, e);
+            if (msg.type === PROTOCOL_H02) {
+                h02Connected = false;
+                h02Socket.destroy();
+            }
             break;
         }
     }
