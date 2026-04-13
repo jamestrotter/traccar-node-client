@@ -1,5 +1,5 @@
 const Gpsd = require('node-gpsd-client');
-const tiny = require('tiny-json-http');
+const http = require('http');
 const haversine = require("haversine-distance");
 const { EOL } = require("os");
 
@@ -132,7 +132,12 @@ async function sendMessages(){
         var url = toSend[0];
         try {
             console.log(`sending '${url}', last GPSD update ${lastMessageTime}`);
-            await tiny.get({url});
+            await new Promise((resolve, reject) => {
+                http.get(url, (res) => {
+                    res.resume();
+                    resolve();
+                }).on('error', reject);
+            });
             console.log("success");
             toSend.shift();
         }
