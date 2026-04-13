@@ -2,18 +2,17 @@
 
 description="Traccar Node Client"
 
+supervisor="supervise-daemon"
 command="/usr/bin/node"
 command_args="/opt/traccar-node-client/index.js"
 command_user="root"
-pidfile="/run/traccar-node-client.pid"
-command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
+
+respawn_delay=5
+respawn_max=10
 
 output_log="/var/log/traccar-node-client.log"
 error_log="/var/log/traccar-node-client.log"
-
-respawn
-respawn_delay=5
-respawn_max=10
 
 depend() {
     need net gpsd
