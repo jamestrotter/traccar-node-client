@@ -20,9 +20,9 @@ catch (e){
     throw new Error("FAILED TO LOAD config.json FILE" +  EOL + e);
 }
 
-const PROTOCOL_HTTP = 'http';
+const PROTOCOL_OSMAND = 'osmand';
 const PROTOCOL_H02  = 'h02';
-const protocol = (config.protocol || PROTOCOL_HTTP).toLowerCase();
+const protocol = (config.protocol || PROTOCOL_OSMAND).toLowerCase();
 
 const client = new Gpsd({
   port: config.gpsd_port,
@@ -202,7 +202,7 @@ function saveLocation(){
         let epy = cachedTPV.epy;
         let accuracy = (epx + epy)/2;
         let url = `${config.server_url}/?id=${config.device_id}&lat=${lat}&lon=${lon}&hdop=${hdop}&speed=${speed}&timestamp=${time}&accuracy=${Math.round(accuracy * 100) / 100}`;
-        toSend.push({ type: PROTOCOL_HTTP, url });
+        toSend.push({ type: PROTOCOL_OSMAND, url });
     }
 }
 
@@ -219,7 +219,7 @@ async function sendMessages(){
                 await new Promise((resolve, reject) => {
                     h02Socket.write(msg.packet, (err) => err ? reject(err) : resolve());
                 });
-            } else {
+            } else if (msg.type === PROTOCOL_OSMAND) { {
                 log.info(`HTTP: sending '${msg.url}', last GPSD update ${lastMessageTime}`);
                 await new Promise((resolve, reject) => {
                     http.get(msg.url, (res) => {
