@@ -5,6 +5,7 @@ description="Traccar Node Client"
 supervisor="supervise-daemon"
 command="/usr/bin/node"
 command_args="/opt/traccar-node-client/index.js"
+supervise_daemon_args="--env LOG_LEVEL=INFO"
 command_user="root"
 pidfile="/run/${RC_SVCNAME}.pid"
 

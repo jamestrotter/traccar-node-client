@@ -3,6 +3,14 @@ const http = require('http');
 const haversine = require("haversine-distance");
 const { EOL } = require("os");
 
+const LOG_LEVELS = { DEBUG: 0, INFO: 1, ERROR: 2 };
+const LOG_LEVEL = LOG_LEVELS[process.env.LOG_LEVEL] ?? LOG_LEVELS.INFO;
+const log = {
+    debug: (...args) => LOG_LEVEL <= LOG_LEVELS.DEBUG && console.log(...args),
+    info:  (...args) => LOG_LEVEL <= LOG_LEVELS.INFO  && console.log(...args),
+    error: (...args) => LOG_LEVEL <= LOG_LEVELS.ERROR && console.error(...args),
+};
+
 let config = null;
 try{
     config = require('./config.json');
@@ -18,7 +26,7 @@ const client = new Gpsd({
 })
 
 client.on('connected', () => {
-    console.log('Gpsd connected')
+    log.info('Gpsd connected')
     client.watch({
         class: 'WATCH',
         json: true,
@@ -27,7 +35,7 @@ client.on('connected', () => {
 })
 
 client.on('error', err => {
-    console.log(`Gpsd error: ${err.message}`)
+    log.error(`Gpsd error: ${err.message}`)
 })
 
 let historicTPV = []
@@ -73,8 +81,8 @@ const loopTimer = 1000;
 
 checkInterval();
 function checkInterval(){
-    console.log("call checkInterval()");
-    console.log(`historicTPV.length = ${historicTPV.length}`);
+    log.debug("call checkInterval()");
+    log.debug(`historicTPV.length = ${historicTPV.length}`);
     if(historicTPV.length > 1){
         let totalDistance = 0;
 
@@ -90,21 +98,21 @@ function checkInterval(){
         }
     }
 
-    console.log(`hasExceededStaticDistance = ${hasExceededStaticDistance}`);
+    log.debug(`hasExceededStaticDistance = ${hasExceededStaticDistance}`);
     var waitTime = hasExceededStaticDistance ? config.send_interval : config.static_send_interval;
-    console.log(`waitTime = ${waitTime}`);
+    log.debug(`waitTime = ${waitTime}`);
 
-    console.log(`previousSendTime = ${previousSendTime}`);
-    console.log(`Date.now() - waitTime = ${Date.now() - waitTime}`);
+    log.debug(`previousSendTime = ${previousSendTime}`);
+    log.debug(`Date.now() - waitTime = ${Date.now() - waitTime}`);
     if(previousSendTime < Date.now() - waitTime){
-        console.log(`Send time has elapsed!`);
+        log.debug(`Send time has elapsed!`);
         if(cachedTPV != null && (cachedTPV.lat !== 0 &&  cachedTPV.lon !== 0)){
             saveLocation();
             hasExceededStaticDistance = false;
             previousSendTime = Date.now();
         }
         else{
-            console.log(`Send time has elapsed but waiting for fix.. ${cachedSKY == null ? 'no data yet' : `satellite count = ${cachedSKY.satellites.length}` }, last GPSD update ${lastMessageTime}`);
+            log.info(`Send time has elapsed but waiting for fix.. ${cachedSKY == null ? 'no data yet' : `satellite count = ${cachedSKY.satellites.length}` }, last GPSD update ${lastMessageTime}`);
         }
     }
 
@@ -132,18 +140,18 @@ async function sendMessages(){
     while(toSend.length > 0){
         var url = toSend[0];
         try {
-            console.log(`sending '${url}', last GPSD update ${lastMessageTime}`);
+            log.info(`sending '${url}', last GPSD update ${lastMessageTime}`);
             await new Promise((resolve, reject) => {
                 http.get(url, (res) => {
                     res.resume();
                     resolve();
                 }).on('error', reject);
             });
-            console.log("success");
+            log.info("success");
             toSend.shift();
         }
         catch(e){
-            console.error(`FAILED TO UPDATE LOCATION, #${toSend.length} UPDATES IN QUEUE`, e);
+            log.error(`FAILED TO UPDATE LOCATION, #${toSend.length} UPDATES IN QUEUE`, e);
             break;
         }
     }
