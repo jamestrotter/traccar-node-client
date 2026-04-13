@@ -72,7 +72,7 @@ const delayTimer = 10000;
 const loopTimer = 1000;
 
 checkInterval();
-async function checkInterval(){
+function checkInterval(){
     console.log("call checkInterval()");
     console.log(`historicTPV.length = ${historicTPV.length}`);
     if(historicTPV.length > 1){
@@ -108,8 +108,9 @@ async function checkInterval(){
         }
     }
 
-    await sendMessages();
-    setTimeout(checkInterval, cachedTPV != null ? loopTimer : delayTimer);
+    sendMessages().then(() => {
+        setTimeout(checkInterval, cachedTPV != null ? loopTimer : delayTimer);
+    });
 }
 
 function saveLocation(){
