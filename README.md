@@ -4,6 +4,7 @@ A node client for pushing GPS updates from GPSD to a Traccar server
 Notable features:
 1. When network is down it will cache messages, allowing for full history when network resumes
 2. different send rates for if the device is static or moving, allowing lower data rates for static devices.
+3. supports both OsmAnd and H02 protocols
 
 Run it with `node index.js` after cloning the repo. Relies on `GPSD` being installed and running.
 
@@ -17,6 +18,7 @@ Run it with `node index.js` after cloning the repo. Relies on `GPSD` being insta
         "static_send_interval": 60000,
         "static_distance_threshold": 1,
         "static_distance_measure_time": 1000,
+        "protocol": "osmand",
         "server_url": "http://localhost:5055",
         "device_id": 7812
     }
@@ -30,6 +32,10 @@ Config Options:
 - `"static_distance_threshold"` - distance in meters between GPS updates reported from GPSD to be classed as not "static"
 - `"static_distance_measure_time"` - the number of milliseconds between GPSD updates to use to calculate distance moved.
     - the default values of 1m & 1000ms equates to ~2mph.
+- `"protocol"` - Protocol to use to send
+    - This defaults to `osmand`
+    - Options are: `osmand` or `h02`
+        - in testing, with the overheads involved with http `osmand` uses approx 10x the bandwidth that `h02` uses. Use `h02` if your application is sensitive to bandwith use.
 - `"server_url"` - traccar server url (inc. port) for OsmAnd updates
 - `"device_id"` - Device ID to send to traccar
 
